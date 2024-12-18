@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle by Maddie</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Times New Roman', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: url(../assets/img/solid-color.jpg);
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .game-container {
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .word-row {
+            display: flex;
+            justify-content: center;
+            margin: 5px;
+        }
+
+        .word-box {
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            background-color: #eee;
+        }
+
+        .correct {
+            background-color: #6aaa64;
+            color: white;
+        }
+
+        .present {
+            background-color: #c9b458;
+            color: white;
+        }
+
+        .absent {
+            background-color: #787c7e;
+            color: white;
+        }
+
+        input {
+            width: 200px;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin-top: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        /* Thumbs down container */
+        .thumbs-down {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px;
+            color: red;
+            animation: thumbsDownAnimation 1.5s ease-out;
+        }
+
+        /* Thumbs down animation */
+        @keyframes thumbsDownAnimation {
+            0% {
+                transform: translateX(-50%) translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(-50%) translateY(0) rotate(15deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-50%) translateY(100px) rotate(180deg);
+                opacity: 0;
+            }
+        }
+
+        /* Hide the play again button initially */
+        #play-again-btn {
+            display: none;
+        }
+
+        .navbar {
+
+        margin-top: 50px; 
+}
+        .navbar-nav {
+            display: flex; 
+            justify-content: center; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0;
+            position: fixed; /* Fix navbar at the top */
+            top: 30px;
+            left: 0;
+            z-index: 1000; /* Ensure navbar stays above other content */
+        }
+        
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            text-transform: uppercase;
+            padding: 10px 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="collapse navbar-collapse" id="navbarResponsive">
+    <ul class="navbar-nav ms-auto py-4 py-lg-0">
+        <li class="nav-item"><a class="nav-link px-lg-3 py-3 py-lg-4" href="../index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link px-lg-3 py-3 py-lg-4" href="education.html">Education</a></li>
+        <li class="nav-item"><a class="nav-link px-lg-3 py-3 py-lg-4" href="experience.html">Experience</a></li>
+        <li class="nav-item"><a class="nav-link px-lg-3 py-3 py-lg-4" href="contact.html">Contact</a></li>
+        <li class="nav-item"><a class="nav-link px-lg-3 py-3 py-lg-4" href="skills.html">Skills</a></li>
+        <li class="nav-item"><a class="nav-link px-lg-3 py-3 py-lg-4" href="from_scratch.html">Cookies</a></li>
+    </ul>
+</div>
+
+<div class="game-container">
+    <h1>Wordle by Maddie</h1>
+    <div id="game-board">
+        <!-- Rows will be dynamically generated here -->
+    </div>
+    <input type="text" id="user-input" maxlength="5" placeholder="Enter guess">
+    <button onclick="checkGuess()">Check Guess</button>
+    <p id="feedback"></p>
+    <button id="play-again-btn" onclick="resetGame()">Play Again</button>
+</div>
+
+<script>
+    const correctWord = "cosmo";
+    let attempts = 0;
+
+    function createGameBoard() {
+        const gameBoard = document.getElementById('game-board');
+        for (let i = 0; i < 6; i++) {
+            const wordRow = document.createElement('div');
+            wordRow.classList.add('word-row');
+            for (let j = 0; j < 5; j++) {
+                const wordBox = document.createElement('div');
+                wordBox.classList.add('word-box');
+                wordRow.appendChild(wordBox);
+            }
+            gameBoard.appendChild(wordRow);
+        }
+    }
+
+    function checkGuess() {
+        const userInput = document.getElementById('user-input').value.toLowerCase();
+        if (userInput.length !== 5) {
+            document.getElementById('feedback').innerText = "Please enter a 5-letter word.";
+            return;
+        }
+
+        if (userInput === correctWord) {
+            document.getElementById('feedback').innerText = "Congratulations! You've guessed the word! You are a true BYU fan. GO COUGS";
+            triggerConfetti(); // Trigger confetti when the user guesses correctly
+            document.getElementById('play-again-btn').style.display = "inline-block"; // Show the Play Again button
+            return;
+        }
+
+        const currentRow = document.querySelectorAll('.word-row')[attempts];
+        const feedback = [];
+
+        for (let i = 0; i < 5; i++) {
+            const letter = userInput[i];
+            const wordBox = currentRow.children[i];
+
+            if (letter === correctWord[i]) {
+                wordBox.classList.add('correct');
+            } else if (correctWord.includes(letter)) {
+                wordBox.classList.add('present');
+            } else {
+                wordBox.classList.add('absent');
+            }
+
+            wordBox.innerText = letter;
+        }
+
+        attempts++;
+        document.getElementById('user-input').value = ''; // Clear input
+        if (attempts === 6) {
+            document.getElementById('feedback').innerText = `Game Over! The word was "${correctWord}".`;
+            showThumbsDown(); // Show thumbs down when the game is over and the user fails
+            document.getElementById('play-again-btn').style.display = "inline-block"; // Show the Play Again button
+        }
+    }
+
+    function triggerConfetti() {
+        // Trigger the confetti animation
+        confetti({
+            particleCount: 200,
+            spread: 90,
+            origin: { y: 0.6 }
+        });
+    }
+
+    function showThumbsDown() {
+        // Create thumbs down element
+        const thumbsDown = document.createElement('div');
+        thumbsDown.classList.add('thumbs-down');
+        thumbsDown.innerText = "👎"; // Thumbs down emoji
+        document.body.appendChild(thumbsDown);
+
+        // Remove thumbs down after animation ends
+        setTimeout(() => {
+            thumbsDown.remove();
+        }, 1500); // Match the animation duration
+    }
+
+    function resetGame() {
+        // Reset attempts and feedback
+        attempts = 0;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('user-input').value = "";
+        document.getElementById('play-again-btn').style.display = "none"; // Hide the Play Again button
+
+        // Clear the game board
+        const gameBoard = document.getElementById('game-board');
+        gameBoard.innerHTML = ""; // Remove all word rows
+
+        // Recreate the game board
+        createGameBoard();
+    }
+
+    createGameBoard(); // Initialize game board
+</script>
+
+</body>
+</html>
